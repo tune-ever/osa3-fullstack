@@ -1,7 +1,7 @@
-POST http://localhost:3001/api/persons
+POST https://delicat-moliere-96031.herokuapp.com/api/persons
 Content-Type: application/json
 
 {
-    "name": "asdasdasd",
+    "name": "Testing",
     "number": "04991929"
 }
