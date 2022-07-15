@@ -4,7 +4,7 @@ const morgan = require('morgan')
 const cors = require('cors')
 const app = express()
 const Person = require('./models/person')
-const { response } = require('express')
+const { response, json } = require('express')
 const { default: mongoose } = require('mongoose')
 
 app.use(express.static('build'))
@@ -16,7 +16,6 @@ morgan.token('content', (req, res) => JSON.stringify(req.body))
 
 app.get('/info', (req, res) => {
     const date = new Date()
-    let i = 0
     Person.find({}).then(persons =>{
         res.send(
         `<h2>Phonebook has info for ${persons.length} people
@@ -40,24 +39,17 @@ app.get('/api/persons/:id', (req, res, next) => {
 
 app.post('/api/persons', (req, res, next) => {
     const body = req.body
-    const id = generateId()
-    if(!body.name)
-        return next(new Error('name must be unique'))
-    if(!body.number)
-        return next(new Error('Must include number'))  
     const person = new Person({
         name: body.name,
         number: body.number,
-        id: id
     })
     person.save().then(savedPerson => {
         res.json(savedPerson)
     })
+    .catch(error => next(error))
 })
 
-const generateId = () => Math.floor(Math.random() * 100)
-
-app.put('/api/persons/:id', (req, res) => {
+app.put('/api/persons/:id', (req, res, next) => {
     const body = req.body
 
     const person = {
@@ -65,7 +57,7 @@ app.put('/api/persons/:id', (req, res) => {
         number: body.number
     }
 
-    Person.findByIdAndUpdate(req.params.id, person)
+    Person.findByIdAndUpdate(req.params.id, person, {runValidators: true})
             .then(updatedPerson => {
                 res.json(updatedPerson)
             })
@@ -90,13 +82,12 @@ app.listen(PORT, () => {
 })
 
 const errorHandler = (error, req, res, next) => {
-    console.log(error.message)
-
+    console.log(error.name)
     if(error.name === 'CastError') {
         return res.status(400).send({error:'malformatted id'})
     }
-    if(error.name === 'Must include number'){
-        return res.status(400).send({error: 'no number'})
+    if(error.name === 'ValidationError'){
+        return res.status(400).json({error: error.message})
     }
     next(error)
 }
